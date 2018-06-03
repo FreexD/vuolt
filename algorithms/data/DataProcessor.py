@@ -12,7 +12,9 @@ import numpy as np
 
 import math
 import csv
-
+from nltk import sent_tokenize, word_tokenize, re
+import itertools
+import string
 
 # ## Utilities
 
@@ -39,6 +41,36 @@ def get_sentences_per_label(dataset_filename):
     return positive_statements, negative_statements
 
 
+def filter_words_with_ampersand_at_and_hashtag(text):
+    return re.sub(r"\w*[@&#]\w*", " ", text)
+
+
+def filter_links(text):
+    return re.sub(r"https?[^\s]*", " ", text)
+
+
+def filter_rubbish(text):
+
+    # add standard punctuation to translate table
+    translate_table = dict((ord(char), None) for char in string.punctuation)
+
+    # add unicode punctuation and strange characters
+    for i in range(8208, 8286):
+        translate_table[i] = None
+
+    # add digits
+    for i in range(0, 9):
+        translate_table[ord(str(i))] = None
+
+    translate_table[8211] = " "   # long dash
+    translate_table[ord("-")] = " "
+    return text.translate(translate_table)
+
+
+def flatten(list_of_lists):
+    return list(itertools.chain(*list_of_lists))
+
+
 # ## Dataset splitting
 
 # In[3]:
@@ -51,19 +83,20 @@ TEST_DATASET_FACTOR = 0.4           # TODO
 MOBILE_DATASETS_NUMBER = 3          # TODO
 MOBILE_DATASET_FACTOR = 0.3         # TODO
 
+
 # UTILITIES
 def clean_statement(statement):
-    # TODO:
-    #   - convert to lowercase
-    #   - strip whitespaces,
-    #   - handle hashtags (#),
-    #   - handle emoticons (consider e.g. "< 33", ":)" and ":O"),
-    #   - remove mentions (@),
-    #   - remove insignificant punctuation (watch out for things like "I'm" and "How's", however "'s" in "Tom's house" should be removed),
-    #   - remove special characters (e.g. &amp;, < b >).
-    # In general, try to search for sth like regexp for english words.
-    return statement
+    sentences = sent_tokenize(statement.lower().strip())
+    words = [clean_sentence(s) for s in sentences]
+    words = flatten(words)
+    # words = [filter_links(w) for w in words]
+    return " ".join(words)
 
+
+def clean_sentence(sentence):
+    sentence = filter_links(sentence)
+    sentence = filter_words_with_ampersand_at_and_hashtag(sentence)
+    return word_tokenize(filter_rubbish(sentence))
 
 # In[4]:
 
