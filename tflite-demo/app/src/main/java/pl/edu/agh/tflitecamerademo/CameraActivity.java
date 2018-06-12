@@ -3,7 +3,9 @@ package pl.edu.agh.tflitecamerademo;
 import android.app.Activity;
 import android.os.Bundle;
 
-import pl.edu.agh.tflitecamerademo.R;
+import java.io.IOException;
+
+import pl.edu.agh.tflitecamerademo.bayes.TrainedBayes;
 
 /** Main {@code Activity} class for the Camera app. */
 public class CameraActivity extends Activity {
@@ -17,6 +19,11 @@ public class CameraActivity extends Activity {
           .beginTransaction()
           .replace(R.id.container, Camera2BasicFragment.newInstance())
           .commit();
+    }
+    try {
+      new TrainedBayes(this);
+    } catch (IOException e) {
+      e.printStackTrace();
     }
   }
 }
