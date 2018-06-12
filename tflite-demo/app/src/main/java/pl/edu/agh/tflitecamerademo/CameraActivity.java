@@ -3,8 +3,6 @@ package pl.edu.agh.tflitecamerademo;
 import android.app.Activity;
 import android.os.Bundle;
 
-import pl.edu.agh.tflitecamerademo.R;
-
 /** Main {@code Activity} class for the Camera app. */
 public class CameraActivity extends Activity {
 

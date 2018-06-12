@@ -51,6 +51,7 @@ dependencies {
     compile 'com.android.support:design:25.2.0'
     compile 'com.android.support:support-annotations:25.3.1'
     compile 'com.android.support:support-v13:25.2.0'
+    compile 'com.github.ptnplanet:Java-Naive-Bayes-Classifier:1.0.7'
 
     compile 'org.tensorflow:tensorflow-lite:+'
 
