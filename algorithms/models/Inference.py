@@ -145,7 +145,7 @@ def batch_inference():
     for batch_number, (identities_batch, labels_batch) in enumerate(zip(identities_batches, labels_batches), 1):
         prediction_results = session.run(is_prediction_correct, {batch_placeholder: identities_batch, labels_placeholder: labels_batch})
         for result_index, result in enumerate(prediction_results, 0):
-            if result is False:
+            if result == False:
                 incorrect_predictions.append(result_index)
         if batch_number % (len(identities_batches) // 50) == 0:
             print('#', end='')
