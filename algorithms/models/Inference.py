@@ -1,4 +1,3 @@
-
 # coding: utf-8
 
 # # Inference on the LSTM network
@@ -8,18 +7,19 @@
 
 import numpy as np
 import tensorflow as tf
-
+import os
 import csv
-
+from sklearn.metrics import classification_report, average_precision_score, precision_recall_curve
+import matplotlib.pyplot as plt
 
 # In[2]:
 
 
 # CONSTANTS
-TESTING_SAMPLES = 315726
+TESTING_SAMPLES = 19734
 MAX_WORDS_PER_SENTENCE = 64
-BATCH_SIZE = 64
-LSTM_UNITS = 32
+BATCH_SIZE = 32
+LSTM_UNITS = 128
 
 
 # ## Utilities
@@ -122,36 +122,80 @@ def build_identities_matrix(dataset_filename, identities_matrix_filename, labels
 
 
 def get_batches(identities, labels):
-    identities_batches = [identities[batch_start_index : batch_start_index + BATCH_SIZE, :] for batch_start_index in range(0, TESTING_SAMPLES, BATCH_SIZE)]
-    labels_batches = [labels[batch_start_index : batch_start_index + BATCH_SIZE, :] for batch_start_index in range(0, TESTING_SAMPLES, BATCH_SIZE)]    
+    identities_batches = [identities[batch_start_index: batch_start_index + BATCH_SIZE, :] for batch_start_index in
+                          range(0, TESTING_SAMPLES, BATCH_SIZE)]
+    labels_batches = [labels[batch_start_index: batch_start_index + BATCH_SIZE, :] for batch_start_index in
+                      range(0, TESTING_SAMPLES, BATCH_SIZE)]
     if TESTING_SAMPLES % BATCH_SIZE != 0:
-        identities_batches[-1] = np.pad(identities_batches[-1], [(0, BATCH_SIZE - identities_batches[-1].shape[0]), (0, 0)], mode='constant', constant_values=0)
-        labels_batches[-1] = np.pad(labels_batches[-1], [(0, BATCH_SIZE - labels_batches[-1].shape[0]), (0, 0)], mode='constant', constant_values=0)    
+        identities_batches[-1] = np.pad(identities_batches[-1],
+                                        [(0, BATCH_SIZE - identities_batches[-1].shape[0]), (0, 0)], mode='constant',
+                                        constant_values=0)
+        labels_batches[-1] = np.pad(labels_batches[-1], [(0, BATCH_SIZE - labels_batches[-1].shape[0]), (0, 0)],
+                                    mode='constant', constant_values=0)
     return identities_batches, labels_batches
 
 
 # In[9]:
 
 
-# TODO: Implement some evaluation measures (e.g. True/False Positives/Negatives and Precision, Recall, F1-score)
+def transform(result):
+    if np.array_equal(result, [0, 1]):
+        return 0
+    else:
+        return 1
+
 
 def batch_inference():
-    # build_identities_matrix('test.csv', 'idsMatrix_test', 'labelsMatrix_test')
-    identities_matrix = load_numpy_array('idsMatrix_test.npy')
-    labels_matrix = load_numpy_array('labelsMatrix_test.npy')
+    dataset = "mobile_1.csv"
+    dataset_name, ext = os.path.splitext(dataset)
+    # build_identities_matrix(dataset, 'idsMatrix_%s' % dataset_name, 'labelsMatrix_%s' % dataset_name)
+    identities_matrix = load_numpy_array('idsMatrix_%s.npy' % dataset_name)
+    labels_matrix = load_numpy_array('labelsMatrix_%s.npy' % dataset_name)
 
     incorrect_predictions = []
     identities_batches, labels_batches = get_batches(identities_matrix, labels_matrix)
+    labels = []
+    for batch in labels_batches:
+        labels.extend([transform(el) for el in batch])
+    results = []
     for batch_number, (identities_batch, labels_batch) in enumerate(zip(identities_batches, labels_batches), 1):
-        prediction_results = session.run(is_prediction_correct, {batch_placeholder: identities_batch, labels_placeholder: labels_batch})
+        prediction_results = session.run(is_prediction_correct,
+                                         {batch_placeholder: identities_batch, labels_placeholder: labels_batch})
         for result_index, result in enumerate(prediction_results, 0):
+            results.append(transform(labels_batch[result_index]) if result else not transform(labels_batch[result_index]))
             if result == False:
-                incorrect_predictions.append(result_index)
+                incorrect_predictions.append((batch_number - 1) * BATCH_SIZE + result_index)
         if batch_number % (len(identities_batches) // 50) == 0:
             print('#', end='')
 
-    # TODO: Handle prediction results (e.g. compute evaluation measures, save them to a *.csv file for further fine-tuning).
-    print('\nIncorrect predictions: {} ({:.2f}%)'.format(len(incorrect_predictions), (len(incorrect_predictions) / TESTING_SAMPLES) * 100))
+    precision, recall, tresholds = precision_recall_curve(labels, results)
+    average_precision = average_precision_score(labels, results)
+
+    plt.step(recall, precision, color='b', alpha=0.2,
+             where='post')
+    plt.fill_between(recall, precision, step='post', alpha=0.2,
+                     color='b')
+
+    plt.xlabel('Recall')
+    plt.ylabel('Precision')
+    plt.title('2-class Precision-Recall curve: AP={0:0.2f}'.format(
+        average_precision))
+    plt.savefig("pr_curve_lstm%s.png" % dataset_name)
+    print(dataset_name)
+    save_incorrect_results(dataset, "errors_lstm_%s.csv" % dataset_name, incorrect_predictions)
+    print('\nIncorrect predictions: {} ({:.2f}%)'.format(len(incorrect_predictions),
+                                                         (len(incorrect_predictions) / TESTING_SAMPLES) * 100))
+
+
+def save_incorrect_results(dataset_file, output_file, incorret_predictions):
+    with open(dataset_file, 'r') as dataset_csv_file:
+        with open(output_file, 'w') as error_file:
+            csv_reader = csv.reader(dataset_csv_file, delimiter=',')
+            csv_writer = csv.writer(error_file)
+            for i, row in enumerate(csv_reader):
+                if i in incorret_predictions:
+                    csv_writer.writerow(row)
+
 
 def simple_inference(sentence):
     network_input = np.zeros((BATCH_SIZE, MAX_WORDS_PER_SENTENCE))
@@ -168,4 +212,3 @@ def simple_inference(sentence):
 batch_inference()
 simple_inference('I am rather happy than sad.')
 simple_inference('I am rather sad than happy.')
-

@@ -7,13 +7,13 @@
 
 
 from sklearn.feature_extraction.text import HashingVectorizer, TfidfTransformer
+from sklearn.metrics import classification_report, precision_recall_curve, average_precision_score
 from sklearn.naive_bayes import MultinomialNB
 from sklearn.externals import joblib
-
+import matplotlib.pyplot as plt
 import numpy as np
-
 import csv
-
+import os
 
 # In[2]:
 
@@ -78,7 +78,7 @@ def train():
     #setup_pretrained_classifier(tfidf, labels)
 
 
-# train()
+train()
 
 
 # ## Inference
@@ -86,19 +86,44 @@ def train():
 # In[5]:
 
 
-# TODO: Implement some evaluation measures (e.g. True/False Positives/Negatives and Precision, Recall, F1-score)
-
 def batch_inference(classifier):
-    tfidf, labels = build_tfidf('test.csv')
+    dataset = "mobile_1.csv"
+    dataset_name = os.path.basename(dataset)
+    tfidf, labels = build_tfidf(dataset)
     incorrect_predictions = []
     
     prediction_results = classifier.predict(tfidf)
     for result_index, (predicted_result, ground_truth) in enumerate(zip(prediction_results, labels)):
         if predicted_result != ground_truth:
             incorrect_predictions.append(result_index)
-    
-    # TODO: Handle prediction results (e.g. compute evaluation measures, save them to a *.csv file for further fine-tuning).
+    print(classification_report(labels, prediction_results))
+
+    precision, recall, tresholds = precision_recall_curve(labels, prediction_results)
+    average_precision = average_precision_score(labels, prediction_results)
+
+    plt.step(recall, precision, color='b', alpha=0.2,
+             where='post')
+    plt.fill_between(recall, precision, step='post', alpha=0.2,
+                     color='b')
+
+    plt.xlabel('Recall')
+    plt.ylabel('Precision')
+    plt.title('2-class Precision-Recall curve: AP={0:0.2f}'.format(
+        average_precision))
+    plt.savefig("pr_curve_lstm%s.png" % dataset_name)
+
+    save_incorrect_results(dataset, "errors_nb_%s.csv" % dataset_name, incorrect_predictions)
     print('Incorrect predictions: {} ({:.2f}%)'.format(len(incorrect_predictions), (len(incorrect_predictions) / TESTING_SAMPLES) * 100))
+
+
+def save_incorrect_results(dataset_file, output_file, incorret_predictions):
+    with open(dataset_file, 'r') as dataset_csv_file:
+        with open(output_file, 'w') as error_file:
+            csv_reader = csv.reader(dataset_csv_file, delimiter=',')
+            csv_writer = csv.writer(error_file)
+            for i, row in enumerate(csv_reader):
+                if i in incorret_predictions:
+                    csv_writer.writerow(row)
 
 
 def simple_inference(classifier, sentence):
