@@ -63,7 +63,7 @@ public final class TrainedBayes {
     }
 
     private static List<String> getFeatures(String sentence) {
-        return Arrays.asList(sentence.split("\\S"));
+        return Arrays.asList(sentence.split("\\s"));
     }
 
     public void learn(String label, String sentence) {
