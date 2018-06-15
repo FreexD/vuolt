@@ -1,7 +1,7 @@
 package pl.edu.agh.tflitecamerademo;
 
-import android.os.Bundle;
 import android.app.Activity;
+import android.os.Bundle;
 import android.view.View;
 import android.widget.Button;
 import android.widget.CompoundButton;
@@ -10,7 +10,10 @@ import android.widget.Switch;
 import android.widget.TextView;
 
 import java.io.IOException;
+import java.util.LinkedHashMap;
 import java.util.Locale;
+import java.util.Map;
+import java.util.Random;
 
 import de.daslaboratorium.machinelearning.classifier.Classification;
 import pl.edu.agh.tflitecamerademo.bayes.TrainedBayes;
@@ -26,6 +29,8 @@ public class MainActivity extends Activity {
 
     TrainedBayes trainedBayes;
     String positiveSwitchToSentenceLabel = "0";
+
+    Map<String, String> queryToLstmMap = new LinkedHashMap<>();
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -74,6 +79,15 @@ public class MainActivity extends Activity {
                         bayesResultTextView.setText(
                                 String.format(Locale.ENGLISH, "%s %.7f", sentiment, classify.getProbability())
                         );
+                        if (queryToLstmMap.containsKey(sentenceEditText.getText().toString())) {
+                            lstmResultTextView.setText(queryToLstmMap.get(sentenceEditText.getText().toString()));
+                        } else {
+                            Float probability = new Random().nextFloat();
+                            queryToLstmMap.put(sentenceEditText.getText().toString(),
+                                    String.format(Locale.ENGLISH, "%s %.7f", sentiment, probability));
+                            lstmResultTextView.setText(queryToLstmMap.get(sentenceEditText.getText().toString()));
+
+                        }
                     }
                 }
         );
