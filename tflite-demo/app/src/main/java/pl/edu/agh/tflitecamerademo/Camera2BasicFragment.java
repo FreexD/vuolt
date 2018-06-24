@@ -41,8 +41,6 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.widget.TextView;
 
-import pl.edu.agh.tflitecamerademo.R;
-
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -69,7 +67,7 @@ public class Camera2BasicFragment extends Fragment
   private boolean runClassifier = false;
   private boolean checkedPermissions = false;
   private TextView textView;
-  private ImageClassifier classifier;
+  private SentimentClassifier classifier;
 
   /** Max preview width that is guaranteed by Camera2 API */
   private static final int MAX_PREVIEW_WIDTH = 1920;
@@ -283,7 +281,7 @@ public class Camera2BasicFragment extends Fragment
   public void onActivityCreated(Bundle savedInstanceState) {
     super.onActivityCreated(savedInstanceState);
     try {
-      classifier = new ImageClassifierQuantizedMobileNet(getActivity());
+      classifier = new SentimentClassifierQuantizedMobileNet(getActivity());
     } catch (IOException e) {
       Log.e(TAG, "Failed to initialize an image classifier.");
     }
